@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Solicitação de Pagamento</title>
+  <!-- jsPDF e autoTable -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f2f2f2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    form {
+      width: 100%;
+      max-width: 500px;
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+    input[disabled] {
+      background-color: #e9e9e9;
+    }
+    button {
+      margin-top: 15px;
+      padding: 12px;
+      width: 100%;
+      background-color: #25D366;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button.pdf {
+      background-color: #007BFF;
+    }
+  </style>
+</head>
+<body>
+  <form id="form">
+    <h2>Solicitação de Pagamento</h2>
+
+    <label for="solicitante">Solicitante:</label>
+    <input type="text" id="solicitante" required>
+
+    <label for="data">Data:</label>
+    <input type="date" id="data" required>
+
+    <label for="descricao">Descrição:</label>
+    <textarea id="descricao" rows="3" required></textarea>
+
+    <label for="horas">Horas Trabalhadas:</label>
+    <input type="number" id="horas" required oninput="calcularValor()">
+
+    <label for="valor">Valor Recebido (R$):</label>
+    <input type="number" id="valor" disabled>
+
+    <label for="total">Valor Total com VT (R$):</label>
+    <input type="number" id="total" disabled>
+
+    <button type="button" onclick="enviarWhatsApp()">Enviar via WhatsApp</button>
+    <button type="button" class="pdf" onclick="gerarPDF()">Gerar PDF</button>
+  </form>
+
+  <script>
+    function calcularValor() {
+      const horas = parseFloat(document.getElementById('horas').value);
+      const valorHora = 1000 / 120;
+      let valorRecebido = 0;
+      let valorTotal = 0;
+
+      if (!isNaN(horas)) {
+        valorRecebido = horas * valorHora;
+        valorTotal = valorRecebido + 132;
+      }
+
+      document.getElementById('valor').value = valorRecebido.toFixed(2);
+      document.getElementById('total').value = valorTotal.toFixed(2);
+    }
+
+    function getDados() {
+      return {
+        nome: document.getElementById('solicitante').value,
+        data: document.getElementById('data').value,
+        descricao: document.getElementById('descricao').value,
+        horas: document.getElementById('horas').value,
+        valor: document.getElementById('valor').value,
+        total: document.getElementById('total').value
+      };
+    }
+
+    function enviarWhatsApp() {
+      const dados = getDados();
+      const numero = '5511983304398'; // Substitua pelo número da sua chefe
+
+      const texto = `Olá, segue solicitação de pagamento:
+Solicitante: ${dados.nome}
+Data: ${dados.data}
+Descrição: ${dados.descricao}
+Horas Trabalhadas: ${dados.horas}
+Valor Recebido: R$ ${dados.valor}
+Valor Total (com VT): R$ ${dados.total}`;
+
+      const url = `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`;
+      window.open(url, '_blank');
+    }
+
+    async function gerarPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const dados = getDados();
+
+      doc.setFontSize(18);
+      doc.text("Solicitação de Pagamento", 105, 20, { align: "center" });
+
+      doc.autoTable({
+        startY: 30,
+        head: [['Campo', 'Informação']],
+        body: [
+          ['Solicitante', dados.nome],
+          ['Data', dados.data],
+          ['Descrição', dados.descricao],
+          ['Horas Trabalhadas', dados.horas],
+          ['Valor Recebido (R$)', dados.valor],
+          ['Valor Total com VT (R$)', dados.total]
+        ],
+        theme: 'grid',
+        styles: {
+          fontSize: 12,
+          cellPadding: 6,
+          valign: 'middle',
+        },
+        headStyles: {
+          fillColor: [0, 123, 255],
+          textColor: 255,
+          halign: 'center',
+        },
+        columnStyles: {
+          0: { fontStyle: 'bold', cellWidth: 70 },
+          1: { cellWidth: 'auto' }
+        }
+      });
+
+      doc.save('solicitacao-pagamento.pdf');
+    }
+  </script>
+</body>
+</html>
